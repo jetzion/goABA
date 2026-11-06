@@ -138,6 +138,7 @@ def test_admin_must_set_up_codes(client):
     secret = browser.post(f"{MFA}/setup/").json()["secret"]
     assert browser.post(f"{MFA}/enable/", json={"code": code(secret)}).json()["mfa_setup_required"] is False
     assert browser.get(PLANS).status_code == 200
+    assert client.delete(f"{USERS}/{admin['id']}/").status_code == 204  # other tests expect one Admin
 
 
 def test_turn_off(mfa_person):
