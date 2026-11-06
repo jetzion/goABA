@@ -45,11 +45,17 @@ class AppUser(Base):
     must_change_password: Mapped[bool] = mapped_column(default=False, server_default=false())
     failed_logins: Mapped[int] = mapped_column(default=0, server_default="0")
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    mfa_secret: Mapped[str | None]
+    mfa_enabled: Mapped[bool] = mapped_column(default=False, server_default=false())
+    mfa_last_step: Mapped[int | None]
     role: Mapped[Role] = relationship()
 
 
 class UserSession(Base):
-    """A signed-in session. Only the SHA-256 of the cookie token is stored."""
+    """A signed-in session. Only the SHA-256 of the cookie token is stored.
+
+    A pending session has passed the password but still needs an authenticator code.
+    """
 
     __tablename__ = "user_session"
 
@@ -58,3 +64,4 @@ class UserSession(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    mfa_pending: Mapped[bool] = mapped_column(default=False, server_default=false())

@@ -212,8 +212,26 @@ Sub-steps:
    - **Check:** drive it in headless Chrome end to end.
 4. (done) README: first sign-in and the set-password command.
 
-### 23. Authenticator codes (MFA) (later)
-Time-based codes from an authenticator app as a second sign-in step, at least for Admin users.
+### 23. Authenticator codes (MFA)
+Time-based codes from an authenticator app as a second sign-in step.
+
+Rules (decided):
+- Admin users must use MFA. An Admin without it is sent to set it up after the password step and can do nothing else first (like a forced password change). Other users may turn it on or off for themselves.
+- Codes are standard TOTP (6 digits, 30 seconds, one step of clock drift either way), so any authenticator app works. Setup shows a QR code and the key as text; MFA is on only after the first correct code.
+- With MFA on, a correct password starts a 5-minute half-signed-in session that can only enter a code, ask who am I, or sign out. A correct code makes it a full 8-hour session.
+- A code cannot be used twice. Wrong codes count toward the same five-strikes lockout as wrong passwords.
+- Lost phone: an Admin uses "Reset MFA" on Admin - Users, which turns it off and ends that user's sessions. The last Admin resets their own from the command line (`uv run python -m app.reset_mfa --user-id 1`).
+- The MFA key is never in the change history; turning MFA on, off or resetting it is.
+- The key is stored in plain text in the database: a leaked database still needs the password too, and the password hashes are Argon2.
+
+Sub-steps:
+1. (done) Data and code helpers: `pyotp` and `segno` (QR as SVG), user columns `mfa_secret`, `mfa_enabled`, `mfa_last_step`, session column `mfa_pending`, history excludes the key.
+   - **Check:** tests for code checking, drift, replay and the history.
+2. API: setup and confirm, the code step at sign-in, the Admin setup gate, turn off (non-Admins, needs a code), Admin reset, `app.reset_mfa`. Test sign-in helpers handle the code.
+   - **Check:** tests for each rule above.
+3. UI: code step on the sign-in form, setup screen with the QR code, an account panel to turn it on or off, "Reset MFA" on Admin - Users.
+   - **Check:** drive it in headless Chrome end to end.
+4. README: MFA and the reset command.
 
 ## Decisions (spec conflicts)
 

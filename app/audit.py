@@ -24,7 +24,7 @@ RECORD_TYPES = {
     TreatmentPlan: "plan",
 }
 PLAN_FIELDS = {"status", "signature"}
-SECRET_FIELDS = {"password_hash", "failed_logins", "locked_until"}
+SECRET_FIELDS = {"password_hash", "failed_logins", "locked_until", "mfa_secret", "mfa_last_step"}
 
 
 def label(session: Session, obj: object) -> str:

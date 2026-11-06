@@ -9,6 +9,10 @@ ADDED_COLUMNS = [
     ("app_user", "must_change_password", "BOOLEAN NOT NULL DEFAULT 0"),
     ("app_user", "failed_logins", "INTEGER NOT NULL DEFAULT 0"),
     ("app_user", "locked_until", "DATETIME"),
+    ("app_user", "mfa_secret", "VARCHAR"),
+    ("app_user", "mfa_enabled", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("app_user", "mfa_last_step", "INTEGER"),
+    ("user_session", "mfa_pending", "BOOLEAN NOT NULL DEFAULT 0"),
 ]
 
 ADDED_INDEXES = [
