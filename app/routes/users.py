@@ -1,4 +1,4 @@
-"""Admin: users, their sign-in email, role and optional provider link, and temporary passwords."""
+"""Admin: users, their sign-in email, role and optional provider link, temporary passwords and MFA resets."""
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.access import CurrentUser
+from app.mfa import turn_off
 from app.models import AppUser, Provider, Role, UserSession
 from app.passwords import check_new_password, hash_password, normal_email
 from app.routes.plan import SessionDep
@@ -36,6 +37,7 @@ class UserRow(BaseModel):
     email: str | None
     has_password: bool
     must_change_password: bool
+    mfa_enabled: bool
 
 
 class TemporaryPasswordRequest(BaseModel):
@@ -67,6 +69,7 @@ def user_row(user: AppUser) -> UserRow:
     return UserRow(
         id=user.id, display_name=user.display_name, role_id=user.role_id, role=user.role.name, provider_id=user.provider_id,
         email=user.email, has_password=user.password_hash is not None, must_change_password=user.must_change_password,
+        mfa_enabled=user.mfa_enabled,
     )
 
 
@@ -175,5 +178,16 @@ def set_temporary_password(user_id: int, body: TemporaryPasswordRequest, session
     user.password_hash = hash_password(body.password)
     user.must_change_password = True
     user.failed_logins, user.locked_until = 0, None
+    session.execute(delete(UserSession).where(UserSession.user_id == user.id))
+    session.commit()
+
+
+@router.post("/{user_id}/mfa/reset/", status_code=204)
+def reset_mfa(user_id: int, session: SessionDep, me: CurrentUser) -> None:
+    """Turn a user's authenticator codes off, e.g. after a lost phone, and end their sessions."""
+    user = load_user(session, user_id)
+    if user.id == me.id:
+        raise HTTPException(409, "You cannot reset your own authenticator codes here")
+    turn_off(user)
     session.execute(delete(UserSession).where(UserSession.user_id == user.id))
     session.commit()

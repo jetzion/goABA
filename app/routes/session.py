@@ -1,7 +1,8 @@
 """Sign in with email and password, sign out, who am I, and change your own password.
 
 A session lasts 8 hours. The cookie holds a random token; the database keeps only its SHA-256.
-Five wrong passwords in a row lock the account for 15 minutes.
+With authenticator codes on, the password starts a 5-minute pending session that needs a code.
+Five wrong passwords or codes in a row lock the account for 15 minutes.
 """
 
 import os
@@ -14,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app.access import COOKIE, CurrentUser, find_session, token_hash, user_access
+from app.access import COOKIE, CurrentUser, find_session, mfa_setup_required, token_hash, user_access
 from app.db import get_session
 from app.models import AppUser, UserSession
 from app.passwords import check_new_password, hash_password, normal_email, verify_password
@@ -22,6 +23,7 @@ from app.passwords import check_new_password, hash_password, normal_email, verif
 router = APIRouter(prefix="/api/v2/session")
 
 SESSION_LENGTH = timedelta(hours=8)
+PENDING_LENGTH = timedelta(minutes=5)
 MAX_FAILED = 5
 LOCKOUT = timedelta(minutes=15)
 WRONG = "Email or password is incorrect"
@@ -38,6 +40,9 @@ class UserResponse(BaseModel):
     role: str
     provider_id: int | None
     must_change_password: bool
+    mfa_enabled: bool
+    mfa_setup_required: bool
+    mfa_pending: bool = False
 
 
 class SessionResponse(BaseModel):
@@ -67,10 +72,11 @@ class ChangePasswordRequest(BaseModel):
         return value
 
 
-def user_response(user: AppUser) -> UserResponse:
+def user_response(user: AppUser, pending: bool = False) -> UserResponse:
     return UserResponse(
         id=user.id, display_name=user.display_name, email=user.email, role=user.role.name,
         provider_id=user.provider_id, must_change_password=user.must_change_password,
+        mfa_enabled=user.mfa_enabled, mfa_setup_required=mfa_setup_required(user), mfa_pending=pending,
     )
 
 
@@ -79,11 +85,27 @@ def as_utc(value: datetime) -> datetime:
     return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
-def start_session(session: Session, response: Response, user: AppUser) -> None:
+def start_session(session: Session, response: Response, user: AppUser, pending: bool = False) -> None:
+    """A full session, or a short pending one that still needs an authenticator code."""
     token = secrets.token_urlsafe(32)
     now = datetime.now(UTC)
-    session.add(UserSession(token_hash=token_hash(token), user_id=user.id, created_at=now, expires_at=now + SESSION_LENGTH))
+    length = PENDING_LENGTH if pending else SESSION_LENGTH
+    session.add(UserSession(token_hash=token_hash(token), user_id=user.id, created_at=now,
+                            expires_at=now + length, mfa_pending=pending))
     response.set_cookie(COOKIE, token, max_age=int(SESSION_LENGTH.total_seconds()), httponly=True, samesite="strict", secure=SECURE_COOKIE)
+
+
+def check_not_locked(user: AppUser) -> None:
+    if user.locked_until and as_utc(user.locked_until) > datetime.now(UTC):
+        raise HTTPException(429, "Too many wrong attempts. Try again in 15 minutes.")
+
+
+def count_failure(session: Session, user: AppUser) -> None:
+    """One more wrong password or code; the fifth in a row locks the account."""
+    user.failed_logins += 1
+    if user.failed_logins >= MAX_FAILED:
+        user.failed_logins, user.locked_until = 0, datetime.now(UTC) + LOCKOUT
+    session.commit()
 
 
 def end_other_sessions(session: Session, user_id: int, keep_token: str | None = None) -> None:
@@ -101,29 +123,27 @@ def who_am_i(session: SessionDep, tp_session: Annotated[str | None, Cookie()] = 
     if found is None:
         return SessionResponse(user=None, access={})
     user = session.get_one(AppUser, found.user_id)
+    if found.mfa_pending:
+        return SessionResponse(user=user_response(user, pending=True), access={})
     return SessionResponse(user=user_response(user), access=user_access(session, user))
 
 
 @router.post("/")
 def sign_in(body: SignInRequest, response: Response, session: SessionDep) -> UserResponse:
-    """Check the password and start an 8-hour session. Unknown email and wrong password look the same."""
+    """Check the password and start a session, pending when a code is needed. Unknown email and wrong password look the same."""
     user = session.scalar(select(AppUser).where(func.lower(AppUser.email) == normal_email(body.email)))
     if user is None:
         verify_password(_DUMMY_HASH, body.password)
         raise HTTPException(401, WRONG)
-    now = datetime.now(UTC)
-    if user.locked_until and as_utc(user.locked_until) > now:
-        raise HTTPException(429, "Too many wrong passwords. Try again in 15 minutes.")
+    check_not_locked(user)
     if not verify_password(user.password_hash, body.password):
-        user.failed_logins += 1
-        if user.failed_logins >= MAX_FAILED:
-            user.failed_logins, user.locked_until = 0, now + LOCKOUT
-        session.commit()
+        count_failure(session, user)
         raise HTTPException(401, WRONG)
-    user.failed_logins, user.locked_until = 0, None
-    start_session(session, response, user)
+    if not user.mfa_enabled:
+        user.failed_logins, user.locked_until = 0, None
+    start_session(session, response, user, pending=user.mfa_enabled)
     session.commit()
-    return user_response(user)
+    return user_response(user, pending=user.mfa_enabled)
 
 
 @router.delete("/", status_code=204)

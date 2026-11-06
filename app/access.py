@@ -17,6 +17,7 @@ from app.models import AppUser, ClientAssignment, RolePermission, TreatmentPlan,
 
 COOKIE = "tp_session"
 OPEN_WHILE_MUST_CHANGE = {"/api/v2/session/", "/api/v2/session/password/"}
+OPEN_WHILE_MFA_SETUP = OPEN_WHILE_MUST_CHANGE | {"/api/v2/session/mfa/setup/", "/api/v2/session/mfa/enable/"}
 
 NONE, VIEW, EDIT = "none", "view", "edit"
 LEVELS = (NONE, VIEW, EDIT)
@@ -46,18 +47,28 @@ def find_session(session: Session, token: str | None) -> UserSession | None:
         UserSession.token_hash == token_hash(token), UserSession.expires_at > datetime.now(UTC)))
 
 
+def mfa_setup_required(user: AppUser) -> bool:
+    """Admin users must use authenticator codes."""
+    return user.role.locked and not user.mfa_enabled
+
+
 def current_user(request: Request, session: Annotated[Session, Depends(get_session)],
                  tp_session: Annotated[str | None, Cookie()] = None) -> AppUser:
-    """The signed-in user, or 401. Until a temporary password is changed, only sign-in routes work (403).
+    """The signed-in user, or 401 (also while the authenticator code is still owed).
 
-    The user is also kept on the request's session for the change history.
+    Until a temporary password is changed, and then until an Admin sets up authenticator codes,
+    only sign-in routes work (403). The user is also kept on the request's session for the change history.
     """
     found = find_session(session, tp_session)
     if found is None:
         raise HTTPException(401, "Sign in first")
+    if found.mfa_pending:
+        raise HTTPException(401, "Enter your authenticator code first")
     user = session.get_one(AppUser, found.user_id)
     if user.must_change_password and request.url.path not in OPEN_WHILE_MUST_CHANGE:
         raise HTTPException(403, "Change your password first")
+    if mfa_setup_required(user) and request.url.path not in OPEN_WHILE_MFA_SETUP:
+        raise HTTPException(403, "Set up authenticator codes first")
     session.info["user"] = user
     return user
 

@@ -227,7 +227,7 @@ Rules (decided):
 Sub-steps:
 1. (done) Data and code helpers: `pyotp` and `segno` (QR as SVG), user columns `mfa_secret`, `mfa_enabled`, `mfa_last_step`, session column `mfa_pending`, history excludes the key.
    - **Check:** tests for code checking, drift, replay and the history.
-2. API: setup and confirm, the code step at sign-in, the Admin setup gate, turn off (non-Admins, needs a code), Admin reset, `app.reset_mfa`. Test sign-in helpers handle the code.
+2. (done) API: setup and confirm, the code step at sign-in, the Admin setup gate, turn off (non-Admins, needs a code), Admin reset, `app.reset_mfa`. Test sign-in helpers handle the code.
    - **Check:** tests for each rule above.
 3. UI: code step on the sign-in form, setup screen with the QR code, an account panel to turn it on or off, "Reset MFA" on Admin - Users.
    - **Check:** drive it in headless Chrome end to end.

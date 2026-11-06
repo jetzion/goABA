@@ -9,7 +9,7 @@ from app import audit, models  # noqa: F401  registers tables and the change-his
 from app.access import current_user, page_access
 from app.db import Base, engine
 from app.migrate import add_missing_columns
-from app.routes import assessment, assignments, brg, child, clients, clone, crisis, discharge, goal_names, goals, history, pcg, sag, education, family, information, medical, medication, options, plan, providers, referral, roles, session, therapy, treatment, uploads, users
+from app.routes import assessment, assignments, brg, child, clients, clone, crisis, discharge, goal_names, goals, history, pcg, sag, education, family, information, medical, medication, mfa, options, plan, providers, referral, roles, session, therapy, treatment, uploads, users
 
 
 @asynccontextmanager
@@ -40,6 +40,7 @@ PAGE_ROUTERS = [
 ]
 
 app.include_router(session.router)
+app.include_router(mfa.router)
 app.include_router(plan.router)
 app.include_router(clone.router)
 app.include_router(uploads.router)

@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 import pyotp
 import segno
 
+from app.models import AppUser
+
 ISSUER = "Treatment Plan"
 DRIFT_STEPS = 1
 
@@ -36,3 +38,8 @@ def matching_step(secret: str, code: str, last_step: int | None, now: datetime |
         if hmac.compare_digest(totp.generate_otp(step), code.strip()):
             return step
     return None
+
+
+def turn_off(user: AppUser) -> None:
+    """Forget the key; the user signs in with a password alone until set up again."""
+    user.mfa_secret, user.mfa_enabled, user.mfa_last_step = None, False, None
