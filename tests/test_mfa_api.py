@@ -61,6 +61,7 @@ def mfa_person(client) -> dict:
 def test_password_alone_without_codes(person):
     browser, response = password_step(person)
     assert response.json()["mfa_enabled"] is False and response.json()["mfa_pending"] is False
+    assert response.json()["mfa_required"] is False
     assert browser.get(PLANS).status_code == 200
 
 
@@ -133,6 +134,7 @@ def test_admin_must_set_up_codes(client):
     admin = make_person(admin=True)
     browser, response = password_step(admin)
     assert response.json()["mfa_setup_required"] is True and response.json()["mfa_pending"] is False
+    assert response.json()["mfa_required"] is True
     assert browser.get(PLANS).json() == {"detail": "Set up authenticator codes first"}
     assert browser.get(SESSION).json()["user"]["mfa_setup_required"] is True
     secret = browser.post(f"{MFA}/setup/").json()["secret"]

@@ -1168,7 +1168,7 @@ input[type="checkbox"] { border-color: #aeb8cb; }
 .mfa-key { display: block; margin-top: 4px; font-size: 15px; color: var(--ink); word-spacing: 2px; user-select: all; }
 .user-who { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; color: var(--spine-muted); }
 .user-who strong { color: var(--spine-ink); font-size: 14px; }
-.user-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 13px; }
+.user-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 10px; font-size: 13px; }
 .user-actions a { color: var(--spine-ink); }
 .user-actions button.link { color: var(--spine-ink); padding: 0; }
 .user-box[hidden] { display: none; }

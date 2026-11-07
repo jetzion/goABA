@@ -42,6 +42,7 @@ let lastPlanId = "1";
 function parseRoute() {
   if (/^(#\/?)?$|^#\/plans\/?$/.test(location.hash)) return { plansPage: true };
   if (location.hash === "#/password") return { passwordPage: true };
+  if (location.hash === "#/mfa") return { mfaPage: true };
   const [, adminPage] = location.hash.match(/^#\/admin\/(\w+)/) || [];
   if (adminPage) return { adminPage };
   const [, planId, page] = location.hash.match(/^#\/plan\/(\d+)\/?(\w+)?/) || [];
@@ -234,9 +235,10 @@ async function renderAdmin(adminPage) {
 }
 
 async function render() {
-  const { planId, page, adminPage, plansPage, passwordPage } = parseRoute();
+  const { planId, page, adminPage, plansPage, passwordPage, mfaPage } = parseRoute();
   if (plansPage) return renderPlans();
   if (passwordPage) return renderChangePassword(false);
+  if (mfaPage) return renderMfaPage();
   if (adminPage) return renderAdmin(adminPage);
   markAdminNav(null);
   markPlansNav(false);
@@ -372,11 +374,11 @@ function markAdminNav(adminPage) {
   document.querySelectorAll("#admin-nav [data-admin]").forEach((a) => a.toggleAttribute("aria-current", a.dataset.admin === adminPage));
 }
 
-/** Sidebar box: who is signed in, with Change password and Sign out. */
+/** Sidebar box: who is signed in, with Change password, Authenticator codes and Sign out. */
 function renderUserBox(user) {
   const box = document.getElementById("user-box");
   box.innerHTML = `<div class="user-who"><span>Signed in as</span><strong>${esc(user.display_name)}</strong><small>${esc(user.role)}</small></div>
-    <div class="user-actions"><a href="#/password">Change password</a><button type="button" class="link" id="sign-out">Sign out</button></div>`;
+    <div class="user-actions"><a href="#/password">Change password</a><a href="#/mfa">Authenticator codes</a><button type="button" class="link" id="sign-out">Sign out</button></div>`;
   box.hidden = false;
 }
 
@@ -467,15 +469,49 @@ async function renderMfaSetup(forced) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
-      await session.enableMfa(form.code.value);
+      currentUser = await session.enableMfa(form.code.value);
     } catch (err) {
       if (!err.status) throw err;
       formError(form, err);
       form.code.value = "";
       return;
     }
+    if (!forced) return renderMfaPage();
     location.replace("#/plans");
     location.reload();
+  });
+}
+
+/** Your authenticator codes: on or off. Admin users must keep them on; others turn them off with a current code. */
+function renderMfaPage() {
+  enterNonPlanPage("", "Authenticator codes", "admin", {});
+  const on = currentUser.mfa_enabled;
+  const body = !on
+    ? `<p class="mfa-step">Off. Turn them on to enter a code from an authenticator app each time you sign in, as well as your password.</p>
+      <div class="actions"><button type="button" id="mfa-start">Set up</button></div>`
+    : currentUser.mfa_required
+      ? `<p class="mfa-step">On. Admin users must keep authenticator codes on. If you lose your phone, another Admin can reset them on Admin - Users.</p>`
+      : `<p class="mfa-step">On. You enter a code from your authenticator app each time you sign in.</p>
+      <label class="field"><span>To turn them off, enter a current code</span><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required></label>
+      <p class="err" role="alert"></p>
+      <div class="actions"><button type="submit">Turn off</button></div>`;
+  document.getElementById("page").innerHTML = `<section class="section">
+    <header class="section-head"><h2>Authenticator codes</h2><p>A second sign-in step that protects your account if your password leaks.</p></header>
+    <form class="section-body auth-form" id="mfa-form">${body}</form>
+  </section>`;
+  document.getElementById("mfa-start")?.addEventListener("click", () => renderMfaSetup(false));
+  const form = document.getElementById("mfa-form");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      currentUser = await session.disableMfa(form.code.value);
+    } catch (err) {
+      if (!err.status) throw err;
+      formError(form, err);
+      form.code.value = "";
+      return;
+    }
+    renderMfaPage();
   });
 }
 

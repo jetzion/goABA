@@ -43,5 +43,6 @@ export const session = {
   enterCode: (code) => request("POST", "/mfa/", { code }, SESSION),
   startMfaSetup: () => request("POST", "/mfa/setup/", {}, SESSION),
   enableMfa: (code) => request("POST", "/mfa/enable/", { code }, SESSION),
+  disableMfa: (code) => request("POST", "/mfa/disable/", { code }, SESSION),
   changePassword: (current, next) => request("POST", "/password/", { current_password: current, new_password: next }, SESSION),
 };

@@ -41,6 +41,7 @@ class UserResponse(BaseModel):
     provider_id: int | None
     must_change_password: bool
     mfa_enabled: bool
+    mfa_required: bool
     mfa_setup_required: bool
     mfa_pending: bool = False
 
@@ -76,7 +77,8 @@ def user_response(user: AppUser, pending: bool = False) -> UserResponse:
     return UserResponse(
         id=user.id, display_name=user.display_name, email=user.email, role=user.role.name,
         provider_id=user.provider_id, must_change_password=user.must_change_password,
-        mfa_enabled=user.mfa_enabled, mfa_setup_required=mfa_setup_required(user), mfa_pending=pending,
+        mfa_enabled=user.mfa_enabled, mfa_required=user.role.locked, mfa_setup_required=mfa_setup_required(user),
+        mfa_pending=pending,
     )
 
 
