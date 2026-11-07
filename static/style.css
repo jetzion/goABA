@@ -1163,6 +1163,9 @@ input[type="checkbox"] { border-color: #aeb8cb; }
 .auth-form .err { margin: 0; }
 .auth-form .actions { display: flex; align-items: center; gap: 16px; }
 .auth-form button[type="submit"] { justify-self: start; }
+.mfa-step { margin: 0; font-size: 14px; color: var(--muted); }
+.mfa-qr { justify-self: start; padding: 10px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); line-height: 0; }
+.mfa-key { display: block; margin-top: 4px; font-size: 15px; color: var(--ink); word-spacing: 2px; user-select: all; }
 .user-who { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; color: var(--spine-muted); }
 .user-who strong { color: var(--spine-ink); font-size: 14px; }
 .user-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 13px; }

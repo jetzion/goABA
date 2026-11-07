@@ -41,5 +41,7 @@ export const session = {
   signIn: (email, password) => request("POST", "/", { email, password }, SESSION),
   signOut: () => request("DELETE", "/", undefined, SESSION),
   enterCode: (code) => request("POST", "/mfa/", { code }, SESSION),
+  startMfaSetup: () => request("POST", "/mfa/setup/", {}, SESSION),
+  enableMfa: (code) => request("POST", "/mfa/enable/", { code }, SESSION),
   changePassword: (current, next) => request("POST", "/password/", { current_password: current, new_password: next }, SESSION),
 };

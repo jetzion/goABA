@@ -354,7 +354,7 @@ let access = {};
 
 /** Past every sign-in step, so the hash routes to pages. */
 function fullySignedIn() {
-  return currentUser && !currentUser.must_change_password && !currentUser.mfa_pending;
+  return currentUser && !currentUser.must_change_password && !currentUser.mfa_pending && !currentUser.mfa_setup_required;
 }
 
 /** Sidebar Admin section: one link per admin page the user can at least view. */
@@ -446,6 +446,39 @@ function renderCodeStep() {
   });
 }
 
+/** Set up authenticator codes: scan the QR code, then confirm with the first code. Forced for Admin users. */
+async function renderMfaSetup(forced) {
+  if (forced) renderBare("Set up authenticator codes");
+  else enterNonPlanPage("", "Authenticator codes", "admin", {});
+  const setup = await session.startMfaSetup();
+  const hint = forced ? "Admin users sign in with a code from an authenticator app as well as a password." : "You will enter a code from the app each time you sign in.";
+  document.getElementById("page").innerHTML = `<section class="section">
+    <header class="section-head"><h2>Set up authenticator codes</h2><p>${hint}</p></header>
+    <form class="section-body auth-form" id="mfa-setup-form">
+      <p class="mfa-step">1. In an authenticator app (such as Google Authenticator, Microsoft Authenticator or 1Password), add an account by scanning this code.</p>
+      <div class="mfa-qr">${setup.qr_svg}</div>
+      <p class="mfa-step">Cannot scan? Enter this key instead: <code class="mfa-key">${esc(setup.secret.match(/.{1,4}/g).join(" "))}</code></p>
+      <label class="field"><span>2. Enter the 6-digit code the app shows</span><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required></label>
+      <p class="err" role="alert"></p>
+      <div class="actions"><button type="submit">Turn on</button>${forced ? `<button type="button" class="link" id="sign-out">Sign out</button>` : ""}</div>
+    </form>
+  </section>`;
+  const form = document.getElementById("mfa-setup-form");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      await session.enableMfa(form.code.value);
+    } catch (err) {
+      if (!err.status) throw err;
+      formError(form, err);
+      form.code.value = "";
+      return;
+    }
+    location.replace("#/plans");
+    location.reload();
+  });
+}
+
 /** Change your own password. Forced after a temporary password, otherwise reached from the sidebar. */
 function renderChangePassword(forced) {
   if (forced) renderBare("Choose a new password");
@@ -500,6 +533,7 @@ async function start() {
   if (!currentUser) return renderSignIn();
   if (currentUser.mfa_pending) return renderCodeStep();
   if (currentUser.must_change_password) return renderChangePassword(true);
+  if (currentUser.mfa_setup_required) return renderMfaSetup(true);
   renderUserBox(currentUser);
   renderAdminNav();
   render();
