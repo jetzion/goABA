@@ -1,4 +1,4 @@
-/** Admin - Users: who can sign in, their email, role, provider link and temporary password. Each change saves on change. */
+/** Admin - Users: who can sign in, their email, role, provider link, temporary password and MFA reset. Each change saves on change. */
 
 import { adminApi } from "../api.js";
 import { card, esc, rerender, tryInline } from "../ui.js";
@@ -27,6 +27,10 @@ function passwordState(u) {
   return `<span class="user-state is-on">Can sign in</span>`;
 }
 
+function mfaState(u) {
+  return u.mfa_enabled ? `<span class="user-state is-on">Codes on</span>` : `<span class="user-state is-off">Codes off</span>`;
+}
+
 function userRow(u, { roles, providers }, { canEdit, me }) {
   const off = canEdit ? "" : "disabled";
   const self = u.id === me;
@@ -36,13 +40,14 @@ function userRow(u, { roles, providers }, { canEdit, me }) {
          <input type="text" autocomplete="off" spellcheck="false" placeholder="8 or more characters" aria-label="Temporary password for ${esc(u.display_name)}">
          <button type="button" class="secondary" data-reset-save="${u.id}">Set</button></span>`
     : "";
+  const mfaReset = canEdit && !self && u.mfa_enabled ? `<button type="button" class="link" data-mfa-reset="${u.id}">Reset MFA</button>` : "";
   return `<li class="user-row" data-user="${u.id}">
       <label class="field"><span>Name</span><input type="text" value="${esc(u.display_name)}" maxlength="255" data-field="display_name" data-value="${esc(u.display_name)}" ${off}></label>
       <label class="field"><span>Email</span><input type="email" value="${esc(u.email ?? "")}" maxlength="255" data-field="email" data-value="${esc(u.email ?? "")}" ${off}></label>
       <label class="field"><span>Role</span><select data-field="role_id" data-value="${u.role_id}" ${off}>${roleOptions(roles, u.role_id)}</select></label>
       <label class="field"><span>Provider</span><select data-field="provider_id" data-value="${u.provider_id ?? ""}" ${off}>${providerOptions(providers, u.provider_id)}</select></label>
       ${canEdit ? (self ? `<span class="user-you">You</span>` : `<button type="button" class="link danger" data-delete="${u.id}">Delete</button>`) : ""}
-      <div class="user-sign-in">${passwordState(u)}${self ? `<a href="#/password">Change your password</a>` : reset}</div>
+      <div class="user-sign-in">${passwordState(u)}${self ? `<a href="#/password">Change your password</a>` : reset}${mfaState(u)}${mfaReset}</div>
       <p class="err" data-user-err="${u.id}"></p>
     </li>`;
 }
@@ -98,6 +103,12 @@ function wire(root, options) {
       const password = root.querySelector(`[data-reset-form="${id}"] input`).value;
       dispatchEvent(new Event("tp:saving"));
       const done = await tryInline(errFor(id), () => adminApi.post(`/users/${id}/password/`, { password }).then(() => true), "Use 8 or more characters.");
+      if (done) await redraw();
+    }
+    const mfa = event.target.closest("[data-mfa-reset]");
+    if (mfa && confirm("Reset this user's authenticator codes? They are signed out and sign in with a password alone, or set codes up again if they are an Admin.")) {
+      dispatchEvent(new Event("tp:saving"));
+      const done = await tryInline(errFor(mfa.dataset.mfaReset), () => adminApi.post(`/users/${mfa.dataset.mfaReset}/mfa/reset/`, {}).then(() => true));
       if (done) await redraw();
     }
     const del = event.target.closest("[data-delete]");

@@ -229,7 +229,7 @@ Sub-steps:
    - **Check:** tests for code checking, drift, replay and the history.
 2. (done) API: setup and confirm, the code step at sign-in, the Admin setup gate, turn off (non-Admins, needs a code), Admin reset, `app.reset_mfa`. Test sign-in helpers handle the code.
    - **Check:** tests for each rule above.
-3. UI: code step on the sign-in form, setup screen with the QR code, an account panel to turn it on or off, "Reset MFA" on Admin - Users.
+3. (done) UI: code step on the sign-in form, setup screen with the QR code, an account panel to turn it on or off, "Reset MFA" on Admin - Users.
    - **Check:** drive it in headless Chrome end to end.
 4. README: MFA and the reset command.
 
