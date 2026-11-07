@@ -344,13 +344,18 @@ addEventListener("tp:saving", () => setSaveState("Saving", "saving"));
 addEventListener("tp:saved", () => { setSaveState("All changes saved", "saved"); refreshStatus(); });
 addEventListener("tp:invalid", () => setSaveState("Fix the highlighted field", "failed"));
 addEventListener("hashchange", () => {
-  if (!currentUser || currentUser.must_change_password) return;
+  if (!fullySignedIn()) return;
   document.getElementById("failure").hidden = true;
   render();
 });
 
 let currentUser = null;
 let access = {};
+
+/** Past every sign-in step, so the hash routes to pages. */
+function fullySignedIn() {
+  return currentUser && !currentUser.must_change_password && !currentUser.mfa_pending;
+}
 
 /** Sidebar Admin section: one link per admin page the user can at least view. */
 function renderAdminNav() {
@@ -414,6 +419,33 @@ function renderSignIn() {
   });
 }
 
+/** Second sign-in step: the 6-digit code from the authenticator app. */
+function renderCodeStep() {
+  renderBare("Authenticator code");
+  document.getElementById("page").innerHTML = `<section class="section">
+    <header class="section-head"><h2>Authenticator code</h2><p>Enter the 6-digit code from your authenticator app.</p></header>
+    <form class="section-body auth-form" id="code-form">
+      <label class="field"><span>Code</span><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus></label>
+      <p class="err" role="alert"></p>
+      <div class="actions"><button type="submit">Continue</button><button type="button" class="link" id="sign-out">Sign out</button></div>
+    </form>
+  </section>`;
+  const form = document.getElementById("code-form");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      await session.enterCode(form.code.value);
+    } catch (err) {
+      if (!err.status) throw err;
+      if (!(await session.get()).user) return location.reload();
+      formError(form, err);
+      form.code.value = "";
+      return;
+    }
+    location.reload();
+  });
+}
+
 /** Change your own password. Forced after a temporary password, otherwise reached from the sidebar. */
 function renderChangePassword(forced) {
   if (forced) renderBare("Choose a new password");
@@ -466,6 +498,7 @@ async function start() {
   currentUser = info.user;
   access = info.access;
   if (!currentUser) return renderSignIn();
+  if (currentUser.mfa_pending) return renderCodeStep();
   if (currentUser.must_change_password) return renderChangePassword(true);
   renderUserBox(currentUser);
   renderAdminNav();

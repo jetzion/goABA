@@ -35,10 +35,11 @@ export const adminApi = {
   del: (path) => request("DELETE", path, undefined, "/api/v2/admin"),
 };
 
-/** Sign-in: who am I, sign in and out, change your own password. A 401 here is an answer, not an expiry. */
+/** Sign-in: who am I, sign in and out, the authenticator code, change your own password. A 401 here is an answer, not an expiry. */
 export const session = {
   get: () => request("GET", "/", undefined, SESSION),
   signIn: (email, password) => request("POST", "/", { email, password }, SESSION),
   signOut: () => request("DELETE", "/", undefined, SESSION),
+  enterCode: (code) => request("POST", "/mfa/", { code }, SESSION),
   changePassword: (current, next) => request("POST", "/password/", { current_password: current, new_password: next }, SESSION),
 };
