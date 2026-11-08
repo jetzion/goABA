@@ -35,7 +35,6 @@ export async function render(container, planId) {
     ${card("Insurance", `<div class="tiles">
       ${policy("Primary", data.insurance.primary)}
       ${policy("Secondary", data.insurance.secondary)}
-      ${policy("Tertiary", data.insurance.tertiary)}
     </div>`)}
     ${card("Care team", `<div class="tiles">
       ${people("Parent/guardian", data.parents_guardians.map((g) => ({ name: g.display_name, role: g.role })), "No parents or guardians assigned.")}

@@ -41,7 +41,7 @@ class ClientGuardian(Base):
 
 
 class ClientInsurance(Base):
-    """An insurance policy. Rank: primary, secondary, tertiary."""
+    """An insurance policy. Rank: primary or secondary."""
 
     __tablename__ = "client_insurance"
 

@@ -298,3 +298,4 @@ Add entries as they come up during the build.
 - Known limit: linked fields show ids (for example `provider_id`), not names.
 - Login: `POST/GET/DELETE /api/v2/session/` and `POST /api/v2/session/password/`; admin resets at `POST /api/v2/admin/users/{id}/password/` (not for yourself). Sign-in compares against a dummy hash for unknown emails so both cases take about as long. Passwords are taken exactly as typed (no trimming). Any API 401 in the UI reloads to the sign-in form, so an expired session never shows the failure banner.
 - New users must be given a role explicitly; the add form no longer defaults to one, because with only the Admin role it defaulted new users to Admin.
+- Information shows Primary and Secondary insurance only; Tertiary was removed by request (the spec lists it). The API no longer returns `insurance.tertiary`.

@@ -42,7 +42,6 @@ class InsuranceInfo(BaseModel):
 class InsuranceSet(BaseModel):
     primary: InsuranceInfo | None = None
     secondary: InsuranceInfo | None = None
-    tertiary: InsuranceInfo | None = None
 
 
 class TreatmentPlanV3InformationResponse(BaseModel):

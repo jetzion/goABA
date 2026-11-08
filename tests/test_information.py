@@ -13,3 +13,4 @@ def test_information(client, plan_id):
     assert data["parents_guardians"] == [{"display_name": "Ana Rivera", "role": "Mother"}]
     assert data["insurance"]["primary"]["payor_name"] == "Blue Cross Blue Shield of Texas"
     assert data["insurance"]["secondary"] is None
+    assert set(data["insurance"]) == {"primary", "secondary"}
