@@ -1,4 +1,4 @@
-# Plan: Treatment Plan v3 web app
+# Plan: goABA web app
 
 Build a working web app from `TREATMENT-PLAN.md`: a JSON API that follows the spec, and a browser UI for all 13 pages.
 

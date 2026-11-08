@@ -1,4 +1,4 @@
-# Treatment Plan v3
+# goABA
 
 A web app for writing ABA treatment plans: a FastAPI JSON API and a browser UI for the 13 plan pages, with an Admin area for roles and page access.
 

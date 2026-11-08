@@ -173,7 +173,7 @@ function renderNoPlan(status) {
 
 function renderNoPages() {
   document.getElementById("page-title").textContent = "No plan pages";
-  document.title = "Treatment Plan";
+  document.title = "goABA";
   document.getElementById("page-icon").innerHTML = icon("admin");
   document.getElementById("page-status").hidden = true;
   document.getElementById("progress").hidden = true;
@@ -387,7 +387,7 @@ function renderBare(title) {
   document.body.classList.add("no-plan");
   for (const id of ["progress", "page-icon", "plans-link", "page-status", "user-box"]) document.getElementById(id).hidden = true;
   document.getElementById("page-title").textContent = title;
-  document.title = `Treatment Plan - ${title}`;
+  document.title = `goABA - ${title}`;
 }
 
 function formError(form, err) {

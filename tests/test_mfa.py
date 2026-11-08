@@ -48,7 +48,7 @@ def test_used_code_does_not_match_again():
 
 def test_setup_uri_and_qr():
     uri = setup_uri("JBSWY3DPEHPK3PXP", "dana@example.com")
-    assert uri.startswith("otpauth://totp/Treatment%20Plan:dana%40example.com?secret=JBSWY3DPEHPK3PXP")
+    assert uri.startswith("otpauth://totp/goABA:dana%40example.com?secret=JBSWY3DPEHPK3PXP")
     assert qr_svg(uri).startswith("<svg")
 
 

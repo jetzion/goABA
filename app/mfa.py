@@ -8,7 +8,7 @@ import segno
 
 from app.models import AppUser
 
-ISSUER = "Treatment Plan"
+ISSUER = "goABA"
 DRIFT_STEPS = 1
 
 

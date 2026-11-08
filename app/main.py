@@ -20,7 +20,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Treatment Plan v3", lifespan=lifespan)
+app = FastAPI(title="goABA", lifespan=lifespan)
 PAGE_ROUTERS = [
     (information.router, "information"),
     (medical.router, "medical"),
